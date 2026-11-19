@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>我的AI · 离线版</title>
+<style>
+
+:root{
+  --bg:#f3ede4; --card:#fffdfa; --ink:#3a3230; --ink2:#8d827c;
+  --ai:#e9dfd1; --me:#c2703f; --line:#e6ddd1; --accent:#b05c33;
+}
+*{box-sizing:border-box}
+body{margin:0;font:16px/1.75 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+  background:radial-gradient(120% 60% at 50% 0%,#faf5ee 0%,var(--bg) 60%);color:var(--ink);
+  padding:calc(env(safe-area-inset-top) + 18px) 16px calc(env(safe-area-inset-bottom) + 16px)}
+.wrap{max-width:560px;margin:0 auto}
+header{display:flex;gap:8px;align-items:center;margin-bottom:14px}
+.ava{width:34px;height:34px;border-radius:50%;background:var(--accent);color:#fff;
+  display:grid;place-items:center;font-size:15px;letter-spacing:0}
+.who{flex:1;min-width:0}
+.who b{display:block;font-size:15px;font-weight:600}
+.who i{font-style:normal;font-size:11px;color:var(--ink2);letter-spacing:.4px}
+.icobtn{width:34px;height:34px;padding:0;display:grid;place-items:center;border-radius:50%;
+  border:1px solid var(--line);background:var(--card);color:var(--ink2);font-size:15px;cursor:pointer}
+#log{height:50vh;overflow:auto;padding:6px 2px}
+.u{margin:14px 0;text-align:right}
+.a{margin:14px 0;display:flex;gap:8px;align-items:flex-start}
+.a .ava{width:26px;height:26px;font-size:12px;margin-top:2px}
+.u span{background:var(--me);color:#fff;padding:9px 13px;border-radius:16px 16px 4px 16px;
+  display:inline-block;max-width:82%;text-align:left;font-size:15px}
+.a span{background:var(--ai);padding:9px 13px;border-radius:4px 16px 16px 16px;
+  display:inline-block;max-width:82%;white-space:pre-wrap;font-size:15px}
+.tip{font-size:11px;color:var(--ink2);text-align:center;letter-spacing:.5px;margin:10px 0}
+.bar{display:flex;gap:8px;align-items:flex-end;background:var(--card);border:1px solid var(--line);
+  border-radius:22px;padding:6px 6px 6px 14px;box-shadow:0 6px 20px rgba(90,70,50,.06)}
+#q{flex:1;border:0;background:transparent;resize:none;height:34px;max-height:110px;
+  font:15px/1.6 inherit;color:var(--ink);outline:none;padding:6px 0}
+#q::placeholder{color:#b8aca4}
+.go{width:36px;height:36px;padding:0;border:0;border-radius:50%;background:var(--accent);color:#fff;font-size:16px;cursor:pointer}
+.badge{max-width:560px;margin:0 auto 12px;font-size:11px;color:#a08a6a;
+  border:1px dashed #d9c8ae;border-radius:8px;padding:5px 10px;text-align:center}
+details{max-width:560px;margin:14px auto 0;font-size:14px;color:var(--ink2)}
+summary{cursor:pointer;list-style:none}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-top:8px}
+label{display:block;font-size:12px;margin:10px 0 4px;color:var(--ink2)}
+input,textarea,select{width:100%;font:15px inherit;color:var(--ink);background:#fff;
+  border:1px solid var(--line);border-radius:10px;padding:9px 11px;outline:none}
+textarea{resize:vertical}
+button.act{margin-top:10px;width:100%;border:0;border-radius:10px;background:var(--accent);color:#fff;padding:10px}
+
+</style>
+</head>
+<body>
+<header>
+  <div class="ava" id="ava">桔</div>
+  <div class="who"><b id="rname">小桔</b><i>离线运行 · 对话仅存本机</i></div>
+  <button class="icobtn" id="btnSwitch" title="切换角色">⇄</button>
+  <button class="icobtn" id="btnClear" title="清空对话">⌫</button>
+</header>
+<select id="role" style="display:none"></select>
+<div id="log"></div>
+<div id="tip">未加载模型。点下方「模型」→ 首次下载约 150–500MB（建议 WiFi），之后永久存在手机里，断网可用。</div>
+<div class="progress" id="pg"><i></i></div>
+<div class="bar">
+  <textarea id="q" rows="1" placeholder="说点什么…"></textarea>
+  <button class="go" id="btnSend">↑</button>
+</div>
+<details>
+  <summary>⚙ 角色 · 外观 · 采样参数</summary>
+  <div class="card">
+    <label>AI 头像</label>
+    <div style="display:flex;gap:8px;align-items:center">
+      <div class="ava" id="setAva" style="width:40px;height:40px">桔</div>
+      <input type="file" accept="image/*" id="fAva" style="flex:1">
+    </div>
+    <label>聊天背景图</label>
+    <input type="file" accept="image/*" id="fBg">
+    <div style="display:flex;gap:8px;align-items:center;margin-top:6px">
+      <input type="color" id="cBg" value="#f3ede4" title="底色" style="width:46px;height:34px;padding:2px">
+      <input type="color" id="cVeil" value="#ffffff" title="蒙版色" style="width:46px;height:34px;padding:2px">
+      <input type="range" id="rVeil" min="0" max="85" value="0" style="flex:1">
+    </div>
+    <div class="val"><span>底色 / 蒙版色</span><span id="veilTxt">蒙版 0%</span></div>
+    <label>气泡颜色</label>
+    <div style="display:flex;gap:8px">
+      <input type="color" id="cMe" value="#c2703f" title="我的气泡" style="flex:1;height:34px;padding:2px">
+      <input type="color" id="cAi" value="#e9dfd1" title="AI气泡" style="flex:1;height:34px;padding:2px">
+    </div>
+    <label style="margin-top:14px">温度 temperature <b id="tTxt" style="color:var(--accent)">0.80</b></label>
+    <input type="range" id="rT" min="0" max="200" value="80">
+    <div class="val"><span>0 严谨刻板</span><span>2 天马行空</span></div>
+    <label>top_p <b id="pTxt" style="color:var(--accent)">0.90</b></label>
+    <input type="range" id="rP" min="5" max="100" value="90">
+    <div class="val"><span>小 用词保守</span><span>大 用词丰富</span></div>
+    <label>重复惩罚 repeat_penalty <b id="rpTxt" style="color:var(--accent)">1.10</b></label>
+    <input type="range" id="rRp" min="100" max="150" value="110">
+    <div class="val"><span>治复读啰嗦</span><span>越大越发散</span></div>
+    <label>人设（系统提示）</label>
+    <textarea id="sys"></textarea>
+    <label>开场白</label>
+    <textarea id="hello"></textarea>
+    <button id="saveRole" class="act">保存这个角色</button>
+    <label>模型（换模型会重新下载）</label>
+    <select id="model">
+      <option value="Qwen/Qwen3-0.6B-Instruct">Qwen3 0.6B ≈ 150MB 最流畅</option>
+      <option value="Qwen/Qwen2.5-1.5B-Instruct">Qwen2.5 1.5B ≈ 350MB 更聪明</option>
+      <option value="HuggingFaceTB/SmolLM2-360M-Instruct">SmolLM2 360M ≈ 90MB 最快</option>
+    </select>
+    <button id="load" class="act">下载并加载模型</button>
+    <button id="btnResetLook" class="act" style="background:#fff;color:var(--accent);border:1px solid var(--line)">恢复默认外观</button>
+    <button id="export" class="act" style="background:#fff;color:var(--accent);border:1px solid var(--line)">导出备份</button>
+    <div class="tip" id="saveTip" style="margin-top:8px">对话与设置都只存在本机浏览器，清缓存会丢。</div>
+  </div>
+</details></details>
+
+<script type="module">
+import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.3.3/dist/transformers.min.js'
+env.allowLocalModels = false
+env.useBrowserCache = true
+env.localModelPath = 'https://huggingface.co/'
+
+const R = JSON.parse(localStorage.getItem('roles') || 'null') || [
+  {n:'小桔', s:'你是小桔，话不多但很毒舌的猫系助手。回复控制在三句以内，别用"有什么可以帮你的"这类客套。', h:'喵，有话快说。'},
+  {n:'阿澈', s:'你是阿澈，耐心的树洞朋友。先接住情绪再给建议，语气平和，不用感叹号堆情绪。', h:'今天过得还好吗？'},
+  {n:'严师', s:'你是严师，严格的导师。指出问题要具体，不夸不哄，给可执行的下一步。', h:'说说你今天卡在哪了。'}
+]
+const log = document.getElementById('log'), q = document.getElementById('q')
+const selRole = document.getElementById('role'), selModel = document.getElementById('model')
+selRole.innerHTML = R.map((r,i)=>`<option value="${i}">${r.n}</option>`).join('')
+let pipe = null, busy = false
+
+function say(t, who){
+  const d = document.createElement('div')
+  d.className = who === 'u' ? 'u' : 'a'
+  if(who !== 'u'){
+    const a = document.createElement('div'); a.className='ava'; a.textContent='桔'; d.appendChild(a)
+  }
+  const s = document.createElement('span'); s.textContent = t
+  d.appendChild(s); log.appendChild(d); log.scrollTop = log.scrollHeight
+  return s
+}
+document.getElementById('btnClear').onclick = () => {
+  if(!confirm('清空当前对话？')) return
+  hist = [sysMsg()]; store.del(CUR); log.innerHTML=''; intro(); save()
+}
+document.getElementById('btnSwitch').onclick = () => {
+  const opts=[...selRole.options]; const i=opts.findIndex(o=>o.value===selRole.value)
+  selRole.value = opts[(i+1)%opts.length].value; selRole.dispatchEvent(new Event('change'))
+}
+selRole.onchange = loadRole
+document.getElementById('newRole').onclick = () => {
+  R.push({n:'新角色', s:'你是一个有帮助的助手，回答简洁。', h:''})
+  localStorage.setItem('roles', JSON.stringify(R))
+  selRole.innerHTML = R.map((r,i)=>`<option value="${i}">${r.n}</option>`).join('')
+  selRole.value = R.length-1; loadRole()
+}
+document.getElementById('saveRole').onclick = () => {
+  const r = R[+selRole.value]
+  r.s = document.getElementById('sys').value.trim()
+  r.h = document.getElementById('hello').value.trim()
+  localStorage.setItem('roles', JSON.stringify(R))
+  loadRole()
+}
+document.getElementById('reset').onclick = () => { log.innerHTML=''; if(R[+selRole.value].h) say(R[+selRole.value].h,'a') }
+document.getElementById('export').onclick = () => {
+  const blob = new Blob([JSON.stringify(log.innerText, null, 2)], {type:'application/json'})
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(blob); a.download = 'chat-backup.json'; a.click()
+}
+document.getElementById('load').onclick = async () => {
+  const pg = document.getElementById('pg'), bar = pg.querySelector('i')
+  pg.style.display = 'block'
+  document.getElementById('tip').innerHTML = '模型下载中…首次较慢，请勿关闭页面。'
+  try{
+    pipe = await pipeline('text-generation', selModel.value, {
+      dtype: 'q4',
+      progress_callback: p => { if(p.total) bar.style.width = (p.loaded/p.total*100).toFixed(0)+'%' }
+    })
+    pg.style.display = 'none'
+    document.getElementById('tip').innerHTML = '模型已就绪，完全离线运行。'
+  }catch(e){
+    document.getElementById('tip').innerHTML = '<b>加载失败：</b>' + e.message + '<br>换小一号的模型，或确认浏览器支持 WebGPU（新版 Chrome / Safari 17+）。'
+  }
+}
+
+function buildPrompt(hist, sys){
+  return [{role:'system',content:sys}, ...hist]
+}
+async function send(){
+  const t = q.value.trim(); if(!t || busy) return
+  q.value = ''; say(t, 'u')
+  if(!pipe){ document.getElementById('tip').innerHTML = '<b>先点「⚙ → 下载并加载模型」。</b>'; return }
+  busy = true
+  const sys = document.getElementById('sys').value.trim()
+  const hist = [...log.querySelectorAll('.u span, .a span')].slice(1).map((s,i)=>({
+    role: s.parentElement.className === 'u' ? 'user' : 'assistant',
+    content: s.textContent
+  })).slice(-12)
+  const opts = { max_new_tokens: 220, do_sample: true, return_full_text: false, temperature: +L$('rT').value/100, top_p: +L$('rP').value/100, repetition_penalty: +L$('rRp').value/100 }
+  try{
+    const res = await pipe(buildPrompt(hist, sys), {
+      ...opts
+    })
+    const msg = Array.isArray(res) ? res[0] : res
+    let reply = (msg && (msg.generated_text || (msg.message && msg.message.content))) || ''
+    out.textContent = String(reply).trim() || '（空回复，换种问法试试）'
+  }catch(e){
+    out.textContent = '出错：' + e.message
+  }
+  busy = false; log.scrollTop = log.scrollHeight
+}
+document.getElementById('send').onclick = send
+btnSend.onclick = send
+q.onkeydown = e => { if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); send() } }
+loadRole()
+
+// ===== 外观与采样参数 =====
+const DEF_LOOK = {ava:'', bg:'', bgColor:'#f3ede4', veilColor:'#ffffff', veil:0, me:'#c2703f', ai:'#e9dfd1'}
+let look = Object.assign({}, DEF_LOOK)
+try{ Object.assign(look, JSON.parse(localStorage.getItem('look')||'{}')) }catch(e){}
+const L$ = id => document.getElementById(id)
+function hexRgb(h){ const m=(h||'').match(/\w\w/g)||['255','255','255']; return m.map(x=>+('0x'+x)).join(',') }
+function paintLook(){
+  document.body.style.backgroundImage = look.bg ? 'url('+look.bg+')' : ''
+  document.body.style.backgroundColor = look.bgColor
+  document.body.style.setProperty('--veil', look.veil==0 ? 'transparent' :
+    'linear-gradient(rgba('+hexRgb(look.veilColor)+','+(look.veil/100)+'),rgba('+hexRgb(look.veilColor)+','+(look.veil/100)+'))')
+  document.documentElement.style.setProperty('--me', look.me)
+  document.documentElement.style.setProperty('--ai', look.ai)
+  const setA = (el, src, txt) => { if(!el) return; el.textContent=''; if(src){ el.style.backgroundImage='url('+src+')' } else { el.style.backgroundImage=''; el.textContent=txt } }
+  setA(L$('ava'), look.ava, '桔'); setA(L$('setAva'), look.ava, '桔')
+}
+function syncLookUI(){
+  L$('cBg').value=look.bgColor; L$('cVeil').value=look.veilColor; L$('rVeil').value=look.veil
+  L$('cMe').value=look.me; L$('cAi').value=look.ai; L$('veilTxt').textContent='蒙版 '+look.veil+'%'
+}
+function saveLook(){ try{ localStorage.setItem('look', JSON.stringify(look)) }catch(e){} }
+function readImg(file, cb){ if(!file) return; const r=new FileReader(); r.onload=()=>cb(r.result); r.readAsDataURL(file) }
+L$('fAva').onchange = e => readImg(e.target.files[0], u => { look.ava=u; saveLook(); paintLook() })
+L$('fBg').onchange  = e => readImg(e.target.files[0], u => { look.bg=u; saveLook(); paintLook() })
+;['cBg','cVeil','rVeil','cMe','cAi'].forEach(id => L$(id).oninput = () => {
+  look.bgColor=L$('cBg').value; look.veilColor=L$('cVeil').value; look.veil=+L$('rVeil').value
+  look.me=L$('cMe').value; look.ai=L$('cAi').value; saveLook(); paintLook(); syncLookUI()
+})
+L$('rT').oninput  = e => L$('tTxt').textContent  = (+e.target.value/100).toFixed(2)
+L$('rP').oninput  = e => L$('pTxt').textContent  = (+e.target.value/100).toFixed(2)
+L$('rRp').oninput = e => L$('rpTxt').textContent = (+e.target.value/100).toFixed(2)
+L$('btnResetLook').onclick = () => { look = Object.assign({}, DEF_LOOK); saveLook(); syncLookUI(); paintLook() }
+paintLook(); syncLookUI()
+</script>
+</body>
+</html>
